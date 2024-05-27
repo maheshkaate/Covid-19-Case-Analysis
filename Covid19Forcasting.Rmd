@@ -1,0 +1,90 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+# Library
+library(covid19.analytics)
+library(dplyr)
+library(prophet)
+library(lubridate)
+library(ggplot2)
+```
+
+```{r}
+# Data
+tsc <- covid19.data(case = 'ts-confirmed')
+tsc <- tsc %>% filter(Country.Region == 'India')
+tsc <- data.frame(t(tsc))
+tsc <- cbind(rownames(tsc), data.frame(tsc, row.names = NULL))
+colnames(tsc) <- c('Date', 'Confirmed')
+tsc <- tsc[-c(1:4),]
+tsc$Date <- ymd(tsc$Date)
+str(tsc)
+tsc$Confirmed <- as.numeric(tsc$Confirmed)
+```
+
+
+```{r}
+# Plot
+qplot(Date, Confirmed, data = tsc, main = 'Covid19 confirmed cases in India')
+ds <- tsc$Date
+y <- tsc$Confirmed
+df <- data.frame(ds, y)
+
+```
+```{r}
+
+library(prophet)
+
+# Forecasting
+m <- prophet(df, daily.seasonality = TRUE)
+
+```
+
+
+```{r}
+# Prediction
+future <- make_future_dataframe(m, periods = 28)
+forecast <- predict(m, future)
+```
+
+```{r}
+# Plot forecast
+plot(m, forecast)
+dyplot.prophet(m,forecast)
+prophet_plot_components(m, forecast)
+```
+```{r}
+#forecast smaller components 
+prophet_plot_components(m, forecast)
+
+```
+
+
+
+
+```{r}
+pred <- forecast$yhat[1:nrow(m$history)]
+actual <- m$history$y
+
+# Evaluate model performance
+plot(actual, pred, xlab = "Actual", ylab = "Predicted", main = "Actual vs Predicted")
+model <- abline(lm(pred ~ actual), col = 'red')
+model_summary <- summary(lm(pred ~ actual))
+model_summary
+```
+
+
+
+
+
